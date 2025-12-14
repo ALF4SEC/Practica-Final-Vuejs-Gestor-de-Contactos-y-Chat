@@ -5,8 +5,11 @@ Aplicación de gestión de contactos con autenticación y chat en tiempo real, c
 ## 🚀 Características
 
 - ✅ Autenticación con Firebase (Email/Password)
+- ✅ Verificación de email con correo automático
+- ✅ Recuperación de contraseña por email
 - ✅ Gestión completa de contactos (CRUD)
 - ✅ Almacenamiento en Firestore con sincronización en tiempo real
+- ✅ Actualización automática de la lista sin necesidad de índices compuestos
 - ✅ Detección de contactos registrados
 - ✅ Chat uno-a-uno en tiempo real
 - ✅ Interfaz moderna con PrimeVue
@@ -32,6 +35,10 @@ Aplicación de gestión de contactos con autenticación y chat en tiempo real, c
 1. En Firebase Console, ve a **Authentication**
 2. Haz clic en **Comenzar**
 3. En la pestaña **Sign-in method**, habilita **Correo electrónico/contraseña**
+4. En la pestaña **Templates**, personaliza los emails de:
+   - **Verificación de correo electrónico**: Email que se envía al registrarse
+   - **Restablecimiento de contraseña**: Email para recuperar la contraseña
+   - Puedes personalizar el idioma, remitente y contenido de estos emails
 
 ### 3. Crear Firestore Database
 
@@ -123,7 +130,17 @@ npm run dev
 
 - Accede a `/register` para crear una nueva cuenta
 - Usa email y contraseña (mínimo 6 caracteres)
-- Una vez registrado, serás redirigido automáticamente al gestor de contactos
+- **Automáticamente recibirás un correo de verificación** en la dirección proporcionada
+- Puedes iniciar sesión inmediatamente, pero verás un banner recordándote verificar tu email
+- Haz clic en "Reenviar email" si no lo recibiste
+
+### Recuperación de Contraseña
+
+- En la pantalla de login, si olvidaste tu contraseña:
+  1. Ingresa tu email en el campo correspondiente
+  2. Haz clic en "¿Olvidaste tu contraseña?"
+  3. Recibirás un correo con un enlace para restablecer tu contraseña
+  4. Sigue las instrucciones del email para crear una nueva contraseña
 
 ### 2. Gestión de Contactos
 

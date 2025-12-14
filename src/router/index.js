@@ -64,11 +64,17 @@ const router = createRouter({
 /**
  * Navigation Guard
  * Protege rutas privadas y redirige usuarios autenticados desde login/register
+ * Espera a que Firebase Auth se inicialice antes de verificar la autenticación
  */
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
   const requiresGuest = to.matched.some(record => record.meta.requiresGuest)
+  
+  // Esperar a que la autenticación se inicialice si todavía está cargando
+  if (authStore.loading) {
+    await authStore.initAuth()
+  }
   
   // Si la ruta requiere autenticación y el usuario no está autenticado
   if (requiresAuth && !authStore.isAuthenticated) {

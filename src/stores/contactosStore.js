@@ -8,8 +8,7 @@ import {
   deleteDoc, 
   query, 
   where, 
-  onSnapshot,
-  orderBy
+  onSnapshot
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuthStore } from './authStore'
@@ -70,19 +69,27 @@ export const useContactosStore = defineStore('contactos', () => {
 
     try {
       // Crear query para obtener solo los contactos del usuario actual
+      // NOTA: Removemos orderBy para evitar requerir índice compuesto
+      // El ordenamiento se hará en el cliente
       const q = query(
         collection(db, 'contactos'),
-        where('userId', '==', authStore.currentUser.uid),
-        orderBy('nombre')
+        where('userId', '==', authStore.currentUser.uid)
       )
 
       // Suscribirse a cambios en tiempo real
       unsubscribe = onSnapshot(q, 
         (snapshot) => {
-          contactos.value = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }))
+          // Ordenar los contactos alfabéticamente por nombre en el cliente
+          contactos.value = snapshot.docs
+            .map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            }))
+            .sort((a, b) => {
+              const nombreA = a.nombre?.toLowerCase() || ''
+              const nombreB = b.nombre?.toLowerCase() || ''
+              return nombreA.localeCompare(nombreB)
+            })
           loading.value = false
         },
         (err) => {

@@ -4,7 +4,9 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  sendEmailVerification,
+  sendPasswordResetEmail
 } from 'firebase/auth'
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from '../firebase'
@@ -14,6 +16,8 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref(null)
   const loading = ref(true)
   const error = ref(null)
+  let authInitialized = false
+  let initAuthPromise = null
 
   // Getters
   const isAuthenticated = computed(() => !!user.value)
@@ -22,23 +26,39 @@ export const useAuthStore = defineStore('auth', () => {
   /**
    * Inicializa el listener de autenticación
    * Mantiene sincronizado el estado con Firebase Auth
+   * Solo se ejecuta una vez, llamadas posteriores devuelven la misma promesa
    */
   const initAuth = () => {
-    return new Promise((resolve) => {
+    // Si ya se inicializó, devolver la promesa existente o resolver inmediatamente
+    if (authInitialized) {
+      return Promise.resolve(user.value)
+    }
+    
+    // Si ya hay una inicialización en curso, devolver esa promesa
+    if (initAuthPromise) {
+      return initAuthPromise
+    }
+    
+    // Crear nueva promesa de inicialización
+    initAuthPromise = new Promise((resolve) => {
       onAuthStateChanged(auth, (firebaseUser) => {
         if (firebaseUser) {
           user.value = {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
-            displayName: firebaseUser.displayName || firebaseUser.email.split('@')[0]
+            displayName: firebaseUser.displayName || firebaseUser.email.split('@')[0],
+            emailVerified: firebaseUser.emailVerified
           }
         } else {
           user.value = null
         }
         loading.value = false
+        authInitialized = true
         resolve(firebaseUser)
       })
     })
+    
+    return initAuthPromise
   }
 
   /**
@@ -64,17 +84,30 @@ export const useAuthStore = defineStore('auth', () => {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
         displayName: name,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        emailVerified: firebaseUser.emailVerified
       })
+      
+      // Enviar email de verificación
+      try {
+        await sendEmailVerification(firebaseUser)
+      } catch (emailErr) {
+        console.warn('No se pudo enviar email de verificación:', emailErr.message)
+      }
       
       // Actualizar estado local
       user.value = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
-        displayName: name
+        displayName: name,
+        emailVerified: firebaseUser.emailVerified
       }
       
-      return { success: true, user: user.value }
+      return { 
+        success: true, 
+        user: user.value,
+        message: 'Cuenta creada. Por favor, verifica tu email.'
+      }
     } catch (err) {
       error.value = getErrorMessage(err.code)
       return { success: false, error: error.value }
@@ -99,7 +132,8 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
-        displayName: firebaseUser.displayName || firebaseUser.email.split('@')[0]
+        displayName: firebaseUser.displayName || firebaseUser.email.split('@')[0],
+        emailVerified: firebaseUser.emailVerified
       }
       
       return { success: true, user: user.value }
@@ -123,6 +157,55 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (err) {
       error.value = getErrorMessage(err.code)
       return { success: false, error: error.value }
+    }
+  }
+
+  /**
+   * Envía un correo para restablecer la contraseña
+   * @param {string} email - Email del usuario
+   */
+  const resetPassword = async (email) => {
+    try {
+      error.value = null
+      loading.value = true
+      
+      await sendPasswordResetEmail(auth, email)
+      
+      return { 
+        success: true, 
+        message: 'Se ha enviado un correo para restablecer tu contraseña'
+      }
+    } catch (err) {
+      error.value = getErrorMessage(err.code)
+      return { success: false, error: error.value }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * Reenvía el correo de verificación al usuario actual
+   */
+  const resendVerificationEmail = async () => {
+    try {
+      if (!auth.currentUser) {
+        return { success: false, error: 'No hay usuario autenticado' }
+      }
+
+      error.value = null
+      loading.value = true
+      
+      await sendEmailVerification(auth.currentUser)
+      
+      return { 
+        success: true, 
+        message: 'Correo de verificación enviado'
+      }
+    } catch (err) {
+      error.value = getErrorMessage(err.code)
+      return { success: false, error: error.value }
+    } finally {
+      loading.value = false
     }
   }
 
@@ -157,6 +240,8 @@ export const useAuthStore = defineStore('auth', () => {
     initAuth,
     register,
     login,
-    logout
+    logout,
+    resetPassword,
+    resendVerificationEmail
   }
 })

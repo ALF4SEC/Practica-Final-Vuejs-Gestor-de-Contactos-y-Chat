@@ -87,7 +87,7 @@
             </div>
           </div>
 
-          <!-- NUEVO: Sección de detección de usuario registrado y chat -->
+          <!-- NUEVO: Sección de detección de usuario registrado -->
           <div v-if="checkingUser || usuarioRegistrado !== null" class="border-top-1 border-200 pt-4">
             <div v-if="checkingUser" class="flex align-items-center gap-2">
               <i class="pi pi-spin pi-spinner"></i>
@@ -95,34 +95,16 @@
             </div>
             
             <div v-else-if="usuarioRegistrado">
-              <div class="flex flex-column gap-3">
-                <div class="flex align-items-center gap-2">
-                  <i class="pi pi-check-circle" style="color: var(--green-500); font-size: 1.2rem;"></i>
-                  <span class="font-semibold">Este contacto está registrado en la aplicación</span>
-                </div>
-                <Button 
-                  label="Abrir Chat" 
-                  icon="pi pi-comments"
-                  severity="success"
-                  @click="abrirChat"
-                  outlined
-                />
+              <div class="flex align-items-center gap-2">
+                <i class="pi pi-check-circle" style="color: var(--green-500); font-size: 1.2rem;"></i>
+                <span class="font-semibold">Este contacto está registrado en la aplicación</span>
               </div>
             </div>
             
             <div v-else>
-              <div class="flex flex-column gap-3">
-                <div class="flex align-items-center gap-2">
-                  <i class="pi pi-info-circle" style="color: var(--blue-500); font-size: 1.2rem;"></i>
-                  <span>Este contacto no está registrado en la aplicación</span>
-                </div>
-                <Button 
-                  label="Invitar por Email" 
-                  icon="pi pi-envelope"
-                  severity="info"
-                  @click="invitarContacto"
-                  outlined
-                />
+              <div class="flex align-items-center gap-2">
+                <i class="pi pi-info-circle" style="color: var(--blue-500); font-size: 1.2rem;"></i>
+                <span>Este contacto no está registrado en la aplicación</span>
               </div>
             </div>
           </div>
@@ -181,7 +163,7 @@ import Tag from 'primevue/tag'
 import Toast from 'primevue/toast'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useContactosStore } from '../stores/contactosStore'
 import { collection, query, where, getDocs } from 'firebase/firestore'
@@ -193,18 +175,13 @@ const confirm = useConfirm()
 const toast = useToast()
 const store = useContactosStore()
 
-const contacto = ref(null)
+// Usar computed para obtener siempre el contacto actualizado del store
+const contacto = computed(() => store.obtenerContactoPorId(route.params.id))
 const checkingUser = ref(false)
 const usuarioRegistrado = ref(null)
 const uidUsuarioRegistrado = ref(null)
 
-onMounted(() => {
-  cargarContacto()
-})
-
-const cargarContacto = async () => {
-  contacto.value = store.obtenerContactoPorId(route.params.id)
-  
+onMounted(async () => {
   if (!contacto.value) {
     toast.add({
       severity: 'error',
@@ -219,7 +196,7 @@ const cargarContacto = async () => {
     // Verificar si el contacto está registrado
     await verificarUsuarioRegistrado()
   }
-}
+})
 
 /**
  * Verifica si el email del contacto corresponde a un usuario registrado
@@ -283,12 +260,13 @@ const getIniciales = () => {
 }
 
 const toggleFavoritoContacto = async () => {
+  const esFavorito = contacto.value.favorito
   try {
     await store.toggleFavorito(route.params.id)
     toast.add({
       severity: 'success',
-      summary: contacto.value.favorito ? 'Agregado a favoritos' : 'Quitado de favoritos',
-      detail: `El contacto ha sido ${contacto.value.favorito ? 'agregado a' : 'quitado de'} favoritos`,
+      summary: !esFavorito ? 'Agregado a favoritos' : 'Quitado de favoritos',
+      detail: `El contacto ha sido ${!esFavorito ? 'agregado a' : 'quitado de'} favoritos`,
       life: 3000
     })
   } catch (error) {

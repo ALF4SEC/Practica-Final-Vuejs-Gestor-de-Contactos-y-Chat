@@ -38,32 +38,26 @@
                 :key="mensaje.id"
                 :class="[
                   'flex',
-                  mensaje.from === currentUser.uid ? 'justify-content-end' : 'justify-content-start'
+                  mensaje.from === currentUser?.uid ? 'justify-content-end' : 'justify-content-start'
                 ]"
               >
                 <Card 
                   :class="[
                     'shadow-2',
-                    mensaje.from === currentUser.uid ? 'bg-primary' : 'surface-card'
+                    mensaje.from === currentUser?.uid ? 'bg-blue-100' : 'surface-card'
                   ]"
                   style="max-width: 70%; min-width: 150px;"
                 >
                   <template #content>
                     <div class="flex flex-column gap-2">
                       <p 
-                        :class="[
-                          'm-0',
-                          mensaje.from === currentUser.uid ? 'text-white' : ''
-                        ]"
-                        style="word-wrap: break-word;"
+                        class="m-0"
+                        style="word-wrap: break-word; color: #000;"
                       >
                         {{ mensaje.text }}
                       </p>
                       <small 
-                        :class="[
-                          'text-right',
-                          mensaje.from === currentUser.uid ? 'text-white' : 'text-600'
-                        ]"
+                        class="text-right text-600"
                         style="opacity: 0.8;"
                       >
                         {{ formatearFecha(mensaje.timestamp) }}
@@ -140,7 +134,10 @@ const nombreDestino = ref('Usuario')
 let unsubscribe = null
 
 onMounted(async () => {
+  console.log('🚀 ChatView montado')
+  
   if (!currentUser.value) {
+    console.warn('⚠️ Usuario no autenticado')
     toast.add({
       severity: 'error',
       summary: 'No autenticado',
@@ -151,20 +148,27 @@ onMounted(async () => {
     return
   }
 
+  console.log('👤 Usuario actual:', currentUser.value.uid)
+  console.log('📧 UID Destino:', uidDestino.value)
+
   // Cargar información del otro usuario
   await cargarOtroUsuario()
 
   // Generar chatId: ordenar los UIDs alfabéticamente y unirlos con _
   const uids = [currentUser.value.uid, uidDestino.value].sort()
   chatId.value = uids.join('_')
+  
+  console.log('💬 Chat ID generado:', chatId.value)
 
   // Iniciar escucha de mensajes
   iniciarEscuchaMensajes()
 })
 
 onUnmounted(() => {
+  console.log('🛑 ChatView desmontado - Deteniendo listener')
   if (unsubscribe) {
     unsubscribe()
+    console.log('✅ Listener detenido')
   }
 })
 
@@ -187,16 +191,43 @@ const cargarOtroUsuario = async () => {
  * Inicia la escucha en tiempo real de los mensajes del chat
  */
 const iniciarEscuchaMensajes = () => {
+  console.log('🔄 Iniciando escucha de mensajes en tiempo real...')
+  console.log('💬 Chat ID:', chatId.value)
+  
   const messagesRef = collection(db, 'chats', chatId.value, 'messages')
   const q = query(messagesRef, orderBy('timestamp', 'asc'))
 
   unsubscribe = onSnapshot(q, 
     (snapshot) => {
-      mensajes.value = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }))
+      console.log('📨 onSnapshot activado - Cambios detectados')
+      console.log('📊 Número de documentos en snapshot:', snapshot.docs.length)
+      console.log('🔄 Tipos de cambio:', snapshot.docChanges().map(c => c.type))
+      
+      // Mapear documentos y filtrar los que tengan timestamp null
+      const mensajesNuevos = snapshot.docs
+        .map(doc => {
+          const data = doc.data()
+          console.log('📄 Documento:', doc.id, data)
+          return {
+            id: doc.id,
+            ...data
+          }
+        })
+        .filter(msg => msg.text) // Asegurar que tenga texto
+        .sort((a, b) => {
+          // Ordenar manualmente por timestamp, manejando nulls
+          if (!a.timestamp) return 1
+          if (!b.timestamp) return -1
+          const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : 0
+          const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : 0
+          return timeA - timeB
+        })
+      
+      mensajes.value = mensajesNuevos
       loadingMessages.value = false
+      
+      console.log('✅ Mensajes procesados y actualizados:', mensajes.value.length)
+      console.log('📝 Mensajes:', mensajes.value.map(m => ({ from: m.from, text: m.text?.substring(0, 20) })))
       
       // Scroll automático al último mensaje
       nextTick(() => {
@@ -204,16 +235,23 @@ const iniciarEscuchaMensajes = () => {
       })
     },
     (error) => {
-      console.error('Error al cargar mensajes:', error)
+      console.error('❌ Error en onSnapshot:', error)
+      console.error('Código:', error.code)
+      console.error('Mensaje:', error.message)
+      
       toast.add({
         severity: 'error',
-        summary: 'Error',
-        detail: 'No se pudieron cargar los mensajes',
-        life: 3000
+        summary: 'Error en tiempo real',
+        detail: error.code === 'permission-denied' 
+          ? 'No tienes permiso para leer los mensajes' 
+          : 'No se pudieron cargar los mensajes',
+        life: 5000
       })
       loadingMessages.value = false
     }
   )
+  
+  console.log('✅ Listener de mensajes configurado')
 }
 
 /**
@@ -224,24 +262,45 @@ const enviarMensaje = async () => {
 
   enviando.value = true
   try {
+    console.log('📤 Intentando enviar mensaje...')
+    console.log('👤 Usuario actual:', currentUser.value.uid)
+    console.log('💬 Chat ID:', chatId.value)
+    console.log('📧 Destinatario:', uidDestino.value)
+    
     const messagesRef = collection(db, 'chats', chatId.value, 'messages')
     
-    await addDoc(messagesRef, {
+    const mensajeData = {
       from: currentUser.value.uid,
       to: uidDestino.value,
       text: nuevoMensaje.value.trim(),
       timestamp: serverTimestamp(),
       read: false
-    })
+    }
+    
+    console.log('📝 Datos del mensaje:', mensajeData)
+    
+    await addDoc(messagesRef, mensajeData)
 
+    console.log('✅ Mensaje enviado correctamente')
     nuevoMensaje.value = ''
   } catch (error) {
-    console.error('Error al enviar mensaje:', error)
+    console.error('❌ Error al enviar mensaje:', error)
+    console.error('Código de error:', error.code)
+    console.error('Mensaje de error:', error.message)
+    
+    let errorDetail = 'No se pudo enviar el mensaje'
+    
+    if (error.code === 'permission-denied') {
+      errorDetail = 'No tienes permiso para enviar mensajes. Verifica las reglas de Firestore.'
+    } else if (error.code === 'unavailable') {
+      errorDetail = 'No hay conexión a internet'
+    }
+    
     toast.add({
       severity: 'error',
       summary: 'Error',
-      detail: 'No se pudo enviar el mensaje',
-      life: 3000
+      detail: errorDetail,
+      life: 5000
     })
   } finally {
     enviando.value = false

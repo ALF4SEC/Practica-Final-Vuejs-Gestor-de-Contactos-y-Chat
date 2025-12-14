@@ -37,6 +37,9 @@
     </div>
     
     <main :class="authStore.isAuthenticated ? 'p-4' : ''">
+      <!-- Banner de verificación de email (solo si está autenticado) -->
+      <EmailVerificationBanner v-if="authStore.isAuthenticated" />
+      
       <router-view />
     </main>
     
@@ -45,13 +48,14 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useContactosStore } from './stores/contactosStore'
 import { useAuthStore } from './stores/authStore'
 import { useToast } from 'primevue/usetoast'
 import Button from 'primevue/button'
 import Toast from 'primevue/toast'
+import EmailVerificationBanner from './components/EmailVerificationBanner.vue'
 
 const contactosStore = useContactosStore()
 const authStore = useAuthStore()
@@ -59,12 +63,26 @@ const router = useRouter()
 const toast = useToast()
 
 onMounted(async () => {
-  // Inicializar autenticación y esperar a que se resuelva el estado
+  // Inicializar autenticación solo si no se ha inicializado
+  // El router guard también puede llamar a initAuth, pero esta implementación
+  // garantiza que solo se ejecute una vez gracias al control en authStore
   await authStore.initAuth()
   
   // Si el usuario está autenticado, inicializar contactos
   if (authStore.isAuthenticated) {
     contactosStore.initContactos()
+  }
+})
+
+// Watch para detectar cambios en la autenticación
+// Cuando el usuario hace login, se inicializan los contactos automáticamente
+watch(() => authStore.isAuthenticated, (isAuthenticated, wasAuthenticated) => {
+  if (isAuthenticated && !wasAuthenticated) {
+    // El usuario acaba de autenticarse (login o registro)
+    contactosStore.initContactos()
+  } else if (!isAuthenticated && wasAuthenticated) {
+    // El usuario acaba de cerrar sesión
+    contactosStore.stopContactos()
   }
 })
 
@@ -75,9 +93,7 @@ const handleLogout = async () => {
   const result = await authStore.logout()
   
   if (result.success) {
-    // Detener la suscripción de contactos
-    contactosStore.stopContactos()
-    
+    // El watch detectará el cambio y detendrá los contactos automáticamente
     toast.add({
       severity: 'success',
       summary: 'Sesión cerrada',

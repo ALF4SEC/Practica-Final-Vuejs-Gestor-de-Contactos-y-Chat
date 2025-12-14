@@ -113,6 +113,17 @@
           <Column header="Acciones">
             <template #body="slotProps">
               <div class="flex gap-2">
+                <!-- Botón de Chat (solo si está registrado) -->
+                <Button 
+                  v-if="estaRegistrado(slotProps.data.email)"
+                  icon="pi pi-comments" 
+                  severity="success" 
+                  @click="abrirChat(slotProps.data)"
+                  v-tooltip.top="'Abrir chat'"
+                  text
+                  rounded
+                  :aria-label="`Abrir chat con ${slotProps.data.nombre}`"
+                />
                 <Button 
                   icon="pi pi-eye" 
                   severity="info" 
@@ -160,22 +171,27 @@ import ConfirmDialog from 'primevue/confirmdialog'
 import DataTable from 'primevue/datatable'
 import Tag from 'primevue/tag'
 import Toast from 'primevue/toast'
-import InputText from 'primevue/inputtext' // NUEVO: Para el buscador
+import InputText from 'primevue/inputtext'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
-import { computed, ref } from 'vue' // NUEVO: añadido ref
+import { computed, ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useContactosStore } from '../stores/contactosStore'
+import { collection, query, where, getDocs } from 'firebase/firestore'
+import { db } from '../firebase'
 
 const router = useRouter()
 const confirm = useConfirm()
 const toast = useToast()
 const store = useContactosStore()
 
-// NUEVO: Estado del filtro de búsqueda
+// Estado del filtro de búsqueda
 const filtroTexto = ref('')
 
-// NUEVO: Computed para filtrar contactos por nombre y email
+// Mapa para almacenar qué contactos están registrados (email -> uid)
+const usuariosRegistrados = ref(new Map())
+
+// Computed para filtrar contactos por nombre y email
 const contactosFiltrados = computed(() => {
   if (!filtroTexto.value.trim()) {
     return store.contactos
@@ -192,6 +208,59 @@ const contactos = computed(() => store.contactos)
 const totalContactos = computed(() => store.totalContactos)
 const totalFavoritos = computed(() => store.totalFavoritos)
 const contactosActivos = computed(() => store.contactosActivos)
+
+/**
+ * Verifica si un contacto está registrado en la aplicación
+ */
+const verificarUsuariosRegistrados = async () => {
+  if (store.contactos.length === 0) return
+  
+  try {
+    // Obtener todos los emails únicos de los contactos
+    const emails = [...new Set(store.contactos.map(c => c.email))]
+    
+    // Consultar la colección 'users' para ver cuáles están registrados
+    for (const email of emails) {
+      const q = query(collection(db, 'users'), where('email', '==', email))
+      const querySnapshot = await getDocs(q)
+      
+      if (!querySnapshot.empty) {
+        // El usuario está registrado, guardar su UID
+        const userData = querySnapshot.docs[0].data()
+        usuariosRegistrados.value.set(email, userData.uid)
+      }
+    }
+  } catch (error) {
+    console.error('Error al verificar usuarios registrados:', error)
+  }
+}
+
+/**
+ * Verifica si un contacto específico está registrado
+ */
+const estaRegistrado = (email) => {
+  return usuariosRegistrados.value.has(email)
+}
+
+/**
+ * Abre el chat con un contacto registrado
+ */
+const abrirChat = (contacto) => {
+  const uid = usuariosRegistrados.value.get(contacto.email)
+  if (uid) {
+    router.push(`/chat/${uid}`)
+  }
+}
+
+// Verificar usuarios registrados cuando se montan los contactos
+onMounted(() => {
+  verificarUsuariosRegistrados()
+})
+
+// Re-verificar cuando cambian los contactos
+watch(() => store.contactos, () => {
+  verificarUsuariosRegistrados()
+})
 
 const navegarNuevo = () => {
   router.push('/contactos/nuevo')

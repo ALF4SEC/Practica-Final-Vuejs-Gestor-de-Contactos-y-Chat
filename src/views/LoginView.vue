@@ -1,18 +1,18 @@
 <template>
-  <div class="flex align-items-center justify-content-center" style="min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-    <Card style="width: 100%; max-width: 450px;" class="shadow-4">
+  <div class="flex align-items-center justify-content-center" style="min-height: 100vh;">
+    <Card style="width: 100%; max-width: 450px;">
       <template #title>
         <div class="text-center">
-          <i class="pi pi-user text-4xl mb-3" style="color: #667eea;"></i>
+          <i class="pi pi-user text-4xl mb-3 text-primary"></i>
           <h2 class="m-0">Iniciar Sesión</h2>
-          <p class="text-600 mt-2" style="font-weight: normal; font-size: 0.95rem;">Accede a tu gestor de contactos</p>
+          <p class="text-600 mt-2">Accede a tu gestor de contactos</p>
         </div>
       </template>
       <template #content>
         <form @submit.prevent="handleLogin" class="flex flex-column gap-3">
           <div class="flex flex-column gap-2">
             <label for="email" class="font-semibold">
-              <i class="pi pi-envelope" style="margin-right: 0.5rem;"></i>
+              <i class="pi pi-envelope mr-2"></i>
               Email
             </label>
             <InputText
@@ -29,7 +29,7 @@
 
           <div class="flex flex-column gap-2">
             <label for="password" class="font-semibold">
-              <i class="pi pi-lock" style="margin-right: 0.5rem;"></i>
+              <i class="pi pi-lock mr-2"></i>
               Contraseña
             </label>
             <Password
@@ -43,6 +43,14 @@
               autocomplete="current-password"
             />
             <small v-if="passwordError" class="p-error">{{ passwordError }}</small>
+            <div class="text-right">
+              <Button
+                label="¿Olvidaste tu contraseña?"
+                link
+                @click="handleForgotPassword"
+                class="p-0 text-sm"
+              />
+            </div>
           </div>
 
           <Message v-if="errorMessage" severity="error" :closable="false">
@@ -59,7 +67,7 @@
           />
 
           <Divider align="center">
-            <span class="text-600" style="font-size: 0.875rem;">o</span>
+            <span class="text-600">o</span>
           </Divider>
 
           <div class="text-center">
@@ -68,8 +76,7 @@
               label="Regístrate aquí"
               link
               @click="goToRegister"
-              class="p-0"
-              style="font-weight: 600;"
+              class="p-0 font-semibold"
             />
           </div>
         </form>
@@ -151,5 +158,45 @@ const handleLogin = async () => {
 
 const goToRegister = () => {
   router.push('/register')
+}
+
+const handleForgotPassword = async () => {
+  if (!email.value) {
+    toast.add({
+      severity: 'warn',
+      summary: 'Email requerido',
+      detail: 'Por favor ingresa tu email primero',
+      life: 3000
+    })
+    return
+  }
+  
+  if (!/\S+@\S+\.\S+/.test(email.value)) {
+    toast.add({
+      severity: 'warn',
+      summary: 'Email inválido',
+      detail: 'Por favor ingresa un email válido',
+      life: 3000
+    })
+    return
+  }
+  
+  const result = await authStore.resetPassword(email.value)
+  
+  if (result.success) {
+    toast.add({
+      severity: 'success',
+      summary: 'Correo enviado',
+      detail: result.message,
+      life: 5000
+    })
+  } else {
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: result.error,
+      life: 4000
+    })
+  }
 }
 </script>

@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Usuarios: solo pueden leer/actualizar su propio documento
+    // Lectura permitida para todos los autenticados (para verificar contactos)
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Contactos: solo pueden acceder a sus propios contactos
+    match /contactos/{contactoId} {
+      allow read, write: if request.auth != null && 
+                            resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && 
+                      request.resource.data.userId == request.auth.uid;
+    }
+    
+    // Chats: permitir lectura/escritura si el usuario está en el chatId
+    match /chats/{chatId} {
+      // El chatId tiene formato "uid1_uid2"
+      // Permitir si el usuario autenticado es uid1 o uid2
+      allow read, write: if request.auth != null && 
+                            (chatId.matches('.*' + request.auth.uid + '.*'));
+      
+      // Mensajes dentro de un chat
+      match /messages/{messageId} {
+        // Permitir si el usuario está participando en el chat
+        allow read, write: if request.auth != null && 
+                              (chatId.matches('.*' + request.auth.uid + '.*'));
+      }
+    }
+  }
+}

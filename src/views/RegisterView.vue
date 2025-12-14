@@ -1,18 +1,18 @@
 <template>
-  <div class="flex align-items-center justify-content-center" style="min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-    <Card style="width: 100%; max-width: 450px;" class="shadow-4">
+  <div class="flex align-items-center justify-content-center" style="min-height: 100vh;">
+    <Card style="width: 100%; max-width: 450px;">
       <template #title>
         <div class="text-center">
-          <i class="pi pi-user-plus text-4xl mb-3" style="color: #667eea;"></i>
+          <i class="pi pi-user-plus text-4xl mb-3 text-primary"></i>
           <h2 class="m-0">Crear Cuenta</h2>
-          <p class="text-600 mt-2" style="font-weight: normal; font-size: 0.95rem;">Únete al gestor de contactos</p>
+          <p class="text-600 mt-2">Únete al gestor de contactos</p>
         </div>
       </template>
       <template #content>
         <form @submit.prevent="handleRegister" class="flex flex-column gap-3">
           <div class="flex flex-column gap-2">
             <label for="displayName" class="font-semibold">
-              <i class="pi pi-user" style="margin-right: 0.5rem;"></i>
+              <i class="pi pi-user mr-2"></i>
               Nombre
             </label>
             <InputText
@@ -28,7 +28,7 @@
 
           <div class="flex flex-column gap-2">
             <label for="email" class="font-semibold">
-              <i class="pi pi-envelope" style="margin-right: 0.5rem;"></i>
+              <i class="pi pi-envelope mr-2"></i>
               Email
             </label>
             <InputText
@@ -45,7 +45,7 @@
 
           <div class="flex flex-column gap-2">
             <label for="password" class="font-semibold">
-              <i class="pi pi-lock" style="margin-right: 0.5rem;"></i>
+              <i class="pi pi-lock mr-2"></i>
               Contraseña
             </label>
             <Password
@@ -62,7 +62,7 @@
               </template>
               <template #footer>
                 <p class="mt-2">Requerimientos:</p>
-                <ul class="pl-2 ml-2 mt-0" style="line-height: 1.5">
+                <ul class="pl-2 ml-2 mt-0">
                   <li>Mínimo 6 caracteres</li>
                 </ul>
               </template>
@@ -72,7 +72,7 @@
 
           <div class="flex flex-column gap-2">
             <label for="confirmPassword" class="font-semibold">
-              <i class="pi pi-lock" style="margin-right: 0.5rem;"></i>
+              <i class="pi pi-lock mr-2"></i>
               Confirmar Contraseña
             </label>
             <Password
@@ -102,7 +102,7 @@
           />
 
           <Divider align="center">
-            <span class="text-600" style="font-size: 0.875rem;">o</span>
+            <span class="text-600">o</span>
           </Divider>
 
           <div class="text-center">
@@ -111,8 +111,7 @@
               label="Inicia sesión aquí"
               link
               @click="goToLogin"
-              class="p-0"
-              style="font-weight: 600;"
+              class="p-0 font-semibold"
             />
           </div>
         </form>
@@ -201,8 +200,8 @@ const handleRegister = async () => {
     toast.add({
       severity: 'success',
       summary: 'Cuenta creada',
-      detail: 'Tu cuenta ha sido creada exitosamente',
-      life: 3000
+      detail: result.message || 'Cuenta creada. Por favor, verifica tu email.',
+      life: 5000
     })
     router.push('/contactos')
   } else {
