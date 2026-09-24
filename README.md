@@ -1,203 +1,121 @@
-# ✅ Proyecto Completado - Gestor de Contactos con Chat
+# Gestor de contactos con chat
 
-## 🎯 Estado del Proyecto: 100% COMPLETO
+Práctica final de Vue.js. Es una agenda de contactos con cuentas de usuario y un chat uno a uno en tiempo real entre usuarios registrados. Está hecha con Vue 3 (Composition API), PrimeVue, Pinia, Vue Router y Firebase (Authentication y Firestore).
 
-Todas las funcionalidades requeridas han sido implementadas exitosamente.
+## Funcionalidades
 
----
+### Cuentas de usuario
 
-## 📦 Archivos Creados (6 nuevos)
+- Registro e inicio de sesión con email y contraseña (mínimo 6 caracteres). La sesión se mantiene al recargar la página.
+- Al registrarse se envía un correo de verificación. Se puede entrar sin verificar, pero aparece un aviso con la opción de reenviar el correo.
+- Recuperación de contraseña desde la pantalla de login: se escribe el email y se pulsa "¿Olvidaste tu contraseña?".
+- Cada usuario nuevo se guarda también en la colección `users` de Firestore (`uid`, `email`, `displayName` y fecha de alta). Los errores de Firebase se muestran traducidos al español.
 
-### 🔐 Autenticación y Configuración
-1. **`src/firebase.js`** - Configuración de Firebase Auth y Firestore
-2. **`src/stores/authStore.js`** - Store de autenticación con Pinia
-3. **`src/views/LoginView.vue`** - Vista de inicio de sesión
-4. **`src/views/RegisterView.vue`** - Vista de registro
+### Contactos
 
-### 💬 Chat
-5. **`src/views/ChatView.vue`** - Chat en tiempo real uno-a-uno
+- Alta, consulta, edición y borrado de contactos. Cada contacto tiene nombre, email, teléfono, empresa, favorito y estado (activo o inactivo).
+- Los contactos se guardan en la colección `contactos` con el `userId` del propietario, así que cada usuario solo ve los suyos.
+- La lista se actualiza en tiempo real con `onSnapshot`. La consulta no usa `orderBy` para no necesitar un índice compuesto en Firestore.
+- La barra superior muestra el número total de contactos y cuántos son favoritos.
 
-### 📄 Documentación
-6. **`CONFIGURACION_FIREBASE.md`** - Guía completa de configuración
-7. **`INICIO_RAPIDO.md`** - Guía de inicio rápido
-8. **`RESUMEN_IMPLEMENTACION.md`** - Detalles técnicos completos
-9. **`.env.example`** - Plantilla para variables de entorno
+### Chat
 
----
+- En el detalle de un contacto, la app busca su email en la colección `users`. Si es un usuario registrado aparece el botón "Abrir Chat"; si no, "Invitar por Email", que abre el cliente de correo con un `mailto:`.
+- El identificador de cada conversación se forma ordenando los dos `uid` y uniéndolos con `_`, de modo que los dos usuarios comparten el mismo chat.
+- Los mensajes se guardan en `chats/{chatId}/messages` con `from`, `to`, `text`, `timestamp` y `read`, y se reciben en tiempo real.
+- Los mensajes propios salen a la derecha y los del otro usuario a la izquierda, con la hora en formato relativo ("Hace 5m", "Hace 2h"). La vista baja sola hasta el último mensaje y se puede enviar con Enter.
 
-## 🔧 Archivos Modificados (6 existentes)
+### Interfaz
 
-1. **`src/App.vue`** - Integración de autenticación y barra superior
-2. **`src/router/index.js`** - Navigation guards y nuevas rutas
-3. **`src/stores/contactosStore.js`** - Refactorizado para Firestore
-4. **`src/components/ContactoDetalle.vue`** - Detección de usuarios + chat
-5. **`src/components/ContactoForm.vue`** - Operaciones asíncronas
-6. **`src/components/ContactosList.vue`** - Operaciones asíncronas
+Toda la interfaz usa componentes de PrimeVue con el tema Aura, PrimeFlex para la maquetación y PrimeIcons, casi sin CSS propio. Hay validación de formularios, avisos tipo toast, confirmación antes de borrar o cerrar sesión, tooltips y etiquetas `aria-label`.
 
----
+## Rutas
 
-## ✨ Funcionalidades Implementadas
+| Ruta | Vista | Acceso |
+|---|---|---|
+| `/login` | Inicio de sesión | Solo sin sesión |
+| `/register` | Registro | Solo sin sesión |
+| `/contactos` | Lista de contactos | Con sesión |
+| `/contactos/nuevo` | Nuevo contacto | Con sesión |
+| `/contactos/:id` | Detalle del contacto | Con sesión |
+| `/contactos/:id/editar` | Editar contacto | Con sesión |
+| `/chat/:uidDestino` | Chat con otro usuario | Con sesión |
 
-### 1️⃣ Firebase Authentication
-- ✅ Registro con email/password
-- ✅ Login/Logout
-- ✅ Persistencia de sesión
-- ✅ Creación automática de usuario en Firestore
-- ✅ Manejo de errores en español
+`/` redirige a `/contactos`. Un guard global espera a que Firebase Auth termine de cargar y después manda a `/login` a quien no tiene sesión, o a `/contactos` a quien ya la tiene e intenta entrar en login o registro.
 
-### 2️⃣ Protección de Rutas
-- ✅ Navigation guards en todas las rutas privadas
-- ✅ Redirección automática según estado de autenticación
-- ✅ Rutas: `/login`, `/register`, `/chat/:uid`
+## Estructura
 
-### 3️⃣ Gestión de Contactos en Firestore
-- ✅ CRUD completo (Crear, Leer, Actualizar, Eliminar)
-- ✅ Sincronización en tiempo real
-- ✅ Filtrado automático por usuario (`userId`)
-- ✅ Campos: nombre, email, teléfono, empresa, favorito, estado
-- ✅ Operaciones asíncronas
-
-### 4️⃣ Detección de Usuarios Registrados
-- ✅ Query a colección `users` por email
-- ✅ Botón "Abrir Chat" si está registrado
-- ✅ Botón "Invitar por Email" si no está registrado
-
-### 5️⃣ Chat en Tiempo Real
-- ✅ Conversaciones uno-a-uno
-- ✅ `chatId` generado ordenando UIDs
-- ✅ Mensajes con: from, to, text, timestamp, read
-- ✅ Sincronización en tiempo real
-- ✅ Interfaz PrimeVue responsive
-- ✅ Scroll automático
-- ✅ Timestamps relativos
-
-### 6️⃣ Interfaz de Usuario
-- ✅ 100% componentes PrimeVue
-- ✅ Sin CSS personalizado extenso
-- ✅ Tema Aura consistente
-- ✅ Responsive design
-- ✅ Validación de formularios
-- ✅ Mensajes toast informativos
-- ✅ Confirmaciones de acciones destructivas
-
-### 7️⃣ Seguridad
-- ✅ Reglas de Firestore documentadas
-- ✅ Filtrado por usuario en todas las queries
-- ✅ Validación en cliente y servidor
-- ✅ Rutas protegidas con guards
-
----
-
-## 🚀 Cómo Empezar
-
-### Opción 1: Inicio Rápido (5 minutos)
-```bash
-# Lee las instrucciones
-cat INICIO_RAPIDO.md
+```
+src/
+  components/
+    ContactoDetalle.vue          detalle, detección de usuario registrado y acceso al chat
+    ContactoForm.vue             formulario de alta y edición
+    ContactosList.vue            lista de contactos
+    EmailVerificationBanner.vue  aviso de email sin verificar
+  stores/
+    authStore.js                 sesión, registro, verificación y recuperación de contraseña
+    contactosStore.js            CRUD de contactos en Firestore
+  views/
+    LoginView.vue
+    RegisterView.vue
+    ChatView.vue
+  router/index.js                rutas y guard de autenticación
+  firebase.js                    inicialización de Firebase
+  App.vue                        barra superior y contenedor principal
+  main.js
+firestore.rules                  reglas de seguridad de Firestore
 ```
 
-### Opción 2: Configuración Detallada
-```bash
-# Lee la guía completa
-cat CONFIGURACION_FIREBASE.md
+## Puesta en marcha
+
+Hace falta Node.js 16 o superior y una cuenta de Firebase.
+
+### 1. Preparar Firebase
+
+1. Crear un proyecto en la [consola de Firebase](https://console.firebase.google.com/).
+2. En Authentication, activar el proveedor "Correo electrónico/contraseña". En la pestaña Templates se pueden personalizar el idioma, el remitente y el texto de los correos de verificación y de recuperación de contraseña.
+3. Crear una base de datos en Firestore y elegir una ubicación cercana.
+4. En Firestore, pestaña Reglas, pegar el contenido de `firestore.rules`. Las reglas dejan que cualquier usuario con sesión lea `users` (hace falta para detectar qué contactos están registrados), que cada uno solo modifique su propio documento de usuario y sus propios contactos, y que un chat solo lo lean y escriban los usuarios cuyo `uid` forma parte del `chatId`.
+5. En la configuración del proyecto, registrar una aplicación web y copiar el objeto `firebaseConfig`.
+
+### 2. Configurar el proyecto
+
+Sustituir los valores de `firebaseConfig` en `src/firebase.js` por los del proyecto propio:
+
+```javascript
+const firebaseConfig = {
+  apiKey: "TU_API_KEY",
+  authDomain: "TU_PROJECT_ID.firebaseapp.com",
+  projectId: "TU_PROJECT_ID",
+  storageBucket: "TU_PROJECT_ID.appspot.com",
+  messagingSenderId: "TU_MESSAGING_SENDER_ID",
+  appId: "TU_APP_ID"
+}
 ```
 
-### Pasos Básicos:
+Ahora mismo el repositorio tiene escrita la configuración del proyecto de Firebase que usé para la práctica.
+
+### 3. Instalar y arrancar
+
 ```bash
-# 1. Configurar Firebase (ver INICIO_RAPIDO.md)
-
-# 2. Editar src/firebase.js con tus credenciales
-
-# 3. Instalar dependencias
 npm install
-
-# 4. Ejecutar
 npm run dev
 ```
 
----
+La aplicación queda en `http://localhost:5173`. Para generar la versión de producción en `dist/`:
 
-## 📊 Estadísticas del Proyecto
+```bash
+npm run build
+```
 
-- **Archivos nuevos creados**: 9
-- **Archivos modificados**: 6
-- **Líneas de código añadidas**: ~1,800
-- **Componentes Vue creados**: 3 (Login, Register, Chat)
-- **Stores Pinia**: 2 (auth, contactos)
-- **Rutas implementadas**: 8
-- **Tiempo estimado de configuración**: 5-10 minutos
+## Cómo probarla
 
----
+1. Registrar un usuario, iniciar sesión y crear, editar, marcar como favorito y borrar algún contacto.
+2. Registrar un segundo usuario con el email de uno de los contactos del primero.
+3. Con el primer usuario, abrir el detalle de ese contacto: debería aparecer "Abrir Chat".
+4. Abrir el chat con cada usuario en un navegador distinto y comprobar que los mensajes llegan al momento.
 
-## 🎨 Stack Tecnológico
+## Notas
 
-- **Frontend**: Vue 3 (Composition API)
-- **UI Library**: PrimeVue + PrimeFlex + PrimeIcons
-- **State Management**: Pinia
-- **Routing**: Vue Router
-- **Backend**: Firebase (Auth + Firestore)
-- **Build Tool**: Vite
-- **Realtime**: Firestore onSnapshot
-
----
-
-## ✅ Checklist de Verificación
-
-### Antes de Empezar
-- [ ] Crear proyecto en Firebase Console
-- [ ] Habilitar Authentication (Email/Password)
-- [ ] Crear Firestore Database
-- [ ] Configurar reglas de seguridad
-- [ ] Copiar credenciales de Firebase
-- [ ] Pegar credenciales en `src/firebase.js`
-
-### Instalación
-- [ ] Ejecutar `npm install`
-- [ ] Ejecutar `npm run dev`
-- [ ] Abrir `http://localhost:5173`
-
-### Pruebas
-- [ ] Registrar nuevo usuario
-- [ ] Login con credenciales
-- [ ] Crear contacto
-- [ ] Editar contacto
-- [ ] Marcar como favorito
-- [ ] Eliminar contacto
-- [ ] Registrar segundo usuario (usar email de un contacto)
-- [ ] Verificar detección de usuario registrado
-- [ ] Abrir chat
-- [ ] Enviar mensajes
-- [ ] Verificar sincronización en tiempo real
-- [ ] Cerrar sesión
-
----
-
-## 📝 Notas Importantes
-
-1. **Credenciales de Firebase**: Deben configurarse en `src/firebase.js` antes de ejecutar
-2. **Reglas de Firestore**: Deben aplicarse en Firebase Console para seguridad
-3. **Índices de Firestore**: Se crearán automáticamente cuando sea necesario
-4. **Variables de Entorno**: Opcional pero recomendado (ver `.env.example`)
-
----
-
-## 🆘 Soporte
-
-Si encuentras algún problema:
-
-1. Verifica que Firebase esté configurado correctamente
-2. Revisa la consola del navegador para errores
-3. Consulta `CONFIGURACION_FIREBASE.md` para detalles
-4. Verifica que las reglas de Firestore estén publicadas
-
----
-
-## 🎉 ¡Proyecto Listo para Usar!
-
-El gestor de contactos con chat está completamente funcional y listo para ser configurado con tus credenciales de Firebase.
-
-**¿Siguiente paso?** → Lee `INICIO_RAPIDO.md` y comienza en 5 minutos.
-
----
-
-**Desarrollado con** ❤️ **usando Vue 3 + Firebase + PrimeVue**
+- Si Firestore pide un índice que falta, el error de la consola del navegador trae un enlace para crearlo.
+- El plan gratuito de Firebase tiene límites de lecturas, escrituras y almacenamiento. El consumo se puede ver en la consola de Firebase.
